@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interstellar Dashboard: Oort Cloud Explorer</title>
+    <style>
+        :root {
+            --neon-orange: #ff6600;
+            --bg: #050505;
+            --gfg-green: #2fa04a;
+            --text-light: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        canvas {
+            display: block;
+            transition: filter 0.3s ease;
+        }
+
+        /* --- UI STYLING --- */
+        .neon-box {
+            border: 2px solid var(--neon-orange);
+            box-shadow: 0 0 25px rgba(255, 102, 0, 0.5);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        .nav-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 260px;
+            z-index: 100;
+        }
+
+        select {
+            width: 100%;
+            background: #111;
+            color: var(--neon-orange);
+            border: 1px solid #444;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        #learnBtn {
+            display: none;
+            width: 100%;
+            background: var(--neon-orange);
+            color: black;
+            border: none;
+            padding: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+            #learnBtn:hover {
+                background: white;
+                color: var(--neon-orange);
+            }
+
+        .back-btn {
+            position: fixed;
+            top: 150px;
+            right: 20px;
+            z-index: 100;
+            background: #222;
+            color: var(--neon-orange);
+            border: 2px solid var(--neon-orange);
+            padding: 8px 15px;
+            cursor: pointer;
+            display: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .tools {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-orange);
+            background: #111;
+            color: var(--neon-orange);
+            cursor: pointer;
+            font-size: 20px;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .btn:hover {
+                background: var(--neon-orange);
+                color: black;
+            }
+
+        #learnModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85vw;
+            max-width: 1200px;
+            height: 85vh;
+            display: none;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 0;
+            background: #f4f4f4;
+            color: #333;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        .modal-header {
+            background: #111;
+            color: var(--neon-orange);
+            padding: 20px 40px;
+            border-bottom: 4px solid var(--neon-orange);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .modal-header h1 {
+                margin: 0;
+                font-size: 35px;
+                text-transform: uppercase;
+            }
+
+        .close-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .modal-body {
+            padding: 40px;
+        }
+
+        .hab-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border-left: 5px solid #0078d7;
+        }
+
+            .hab-container h3 {
+                margin-top: 0;
+                color: #222;
+            }
+
+        .progress-bar-bg {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 25px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4e00, #ffb000, #2fa04a);
+            text-align: right;
+            padding-right: 10px;
+            line-height: 25px;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: width 1s ease-in-out;
+        }
+
+        .edu-section {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+            .edu-section h2 {
+                color: var(--gfg-green);
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+                margin-top: 0;
+            }
+
+        .points-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .point-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+            .point-item::before {
+                content: '✓';
+                color: var(--gfg-green);
+                font-weight: bold;
+            }
+
+        .adv-dis-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .adv-box h3 {
+            color: #0078d7;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .dis-box h3 {
+            color: #d9534f;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        ul.custom-list {
+            list-style: none;
+            padding: 0;
+        }
+
+            ul.custom-list li {
+                margin-bottom: 10px;
+                padding-left: 20px;
+                position: relative;
+                font-size: 14.5px;
+                line-height: 1.5;
+            }
+
+        .adv-box ul.custom-list li::before {
+            content: '➕';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            font-size: 12px;
+        }
+
+        .dis-box ul.custom-list li::before {
+            content: '➖';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            font-size: 12px;
+        }
+
+        .diagram-container {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #eaeaea;
+            border: 1px dashed #aaa;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        #settingsModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 350px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .setting-row {
+            margin: 20px 0;
+        }
+
+            .setting-row label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: bold;
+                color: #ccc;
+            }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--neon-orange);
+            cursor: pointer;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: #222;
+            border: 2px solid var(--neon-orange);
+            color: var(--neon-orange);
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+            .save-btn:hover {
+                background: var(--neon-orange);
+                color: black;
+            }
+
+        #distance_bar {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--neon-orange);
+            border: 2px solid var(--neon-orange);
+            padding: 12px 25px;
+            font-weight: 900;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            z-index: 100;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 20px rgba(255, 102, 0, 0.4);
+            text-align: center;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="back-btn" id="btnBack" onclick="resetView()">← BACK TO SYSTEM</button>
+
+    <div class="nav-panel neon-box">
+        <label style="font-size: 11px; color: #888; display: block; margin-bottom: 5px;">MISSION CONTROL</label>
+        <select id="planetMenu" onchange="selectPlanet(this.value)">
+            <option value="">-- SYSTEM SCAN --</option>
+            <option value="Mercury">Mercury</option>
+            <option value="Venus">Venus</option>
+            <option value="Earth">Earth</option>
+            <option value="Mars">Mars</option>
+            <option value="Jupiter">Jupiter</option>
+            <option value="Saturn">Saturn</option>
+            <option value="Uranus">Uranus</option>
+            <option value="Neptune">Neptune</option>
+            <option value="Pluto">Pluto</option>
+            <option value="Voyager 1">Voyager 1 Probe</option>
+            <option value="New Horizons">New Horizons Probe</option>
+        </select>
+        <button id="learnBtn" onclick="openLearn()">ACCESS PLANET DATA</button>
+    </div>
+
+    <div id="distance_bar">Distance to Sun: <span id="dynamic_dist">Calculating...</span></div>
+
+    <div id="learnModal">
+        <div class="modal-header">
+            <h1 id="mTitle">Planet Name</h1>
+            <button class="close-btn" onclick="closeModal('learnModal')">CLOSE X</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="diagram-container" id="mDiagram"></div>
+            <div class="hab-container">
+                <h3>Human Habitability Probability</h3>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="mHabBar" style="width: 0%;">0%</div>
+                </div>
+                <p style="font-size: 13px; color: #666; margin-top: 10px; margin-bottom: 0;">Based on atmospheric pressure, temperature extremes, radiation levels, and presence of liquid water.</p>
+            </div>
+            <div class="edu-section">
+                <h2>25 Important Scientific Points</h2>
+                <div class="points-grid" id="mPoints"></div>
+            </div>
+            <div class="edu-section adv-dis-container">
+                <div class="adv-box">
+                    <h3>Advantages (Colonization/Resource Perspective)</h3>
+                    <ul class="custom-list" id="mAdv"></ul>
+                </div>
+                <div class="dis-box">
+                    <h3>Disadvantages & Hazards</h3>
+                    <ul class="custom-list" id="mDis"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="neon-box">
+        <h2 style="color:var(--neon-orange); margin-top:0;">Display Settings</h2>
+        <div class="setting-row">
+            <label>Brightness</label>
+            <input type="range" id="brightSlider" min="0.5" max="2" step="0.1" value="1" oninput="updateFilters()">
+        </div>
+        <div class="setting-row">
+            <label>Contrast</label>
+            <input type="range" id="contrastSlider" min="0.5" max="2" step="0.1" value="1" oninput="updateFilters()">
+        </div>
+        <button class="save-btn" onclick="saveSettings()">SAVE & APPLY</button>
+    </div>
+
+    <div class="tools">
+        <button class="btn" onclick="zoom(true)" title="Zoom In">➕</button>
+        <button class="btn" onclick="zoom(false)" title="Zoom Out">➖</button>
+        <button class="btn" onclick="document.getElementById('settingsModal').style.display='block'" title="Settings">⚙️</button>
+        <button class="btn" onclick="toggleLight()" title="Master Light">💡</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- CONSTANTS ---
+        const DUST_START_THRESHOLD = 2000;
+        const DUST_MAX_THRESHOLD = 5000;
+        const KM_TO_LY_DIVISOR = 9460730;
+
+
+        const db = {
+            "Mercury": {
+                hab: 0.1, points: ["Smallest Planet: It is the smallest planet in our solar system, only slightly larger than Earth's Moon.",
+                    "Shortest Year: It orbits the Sun faster than any other planet, completing a year in just 88 Earth days.",
+                    "Extreme Temperatures: Surface temperatures swing from a scorching 430°C (800°F) in the day to -180°C (-290°F) at night.",
+                    "Densest Core: Mercury is the second densest planet; its massive metallic core makes up about 85% of its radius.",
+                    "No Seasons: Its axis is tilted only 2 degrees, meaning it stays nearly upright and does not experience seasons like Earth.",
+                    "Shrinking Planet: As its iron core cools, the planet is actually shrinking, creating giant 'wrinkle ridges' called rupes.",
+                    "Sun's Size: From Mercury's surface, the Sun would appear three times larger and seven times brighter than it does on Earth.",
+                    "No Moons: Mercury is one of only two planets in our solar system (along with Venus) that has no natural moons.",
+                    "Caloris Basin: It features one of the largest impact craters in the solar system, measuring 1,550 km in diameter.",
+                    "Tenuous Exosphere: Instead of a thick atmosphere, it has a thin exosphere made of atoms blasted off its surface by solar winds.",
+                    "Ice at the Poles: Despite being close to the Sun, radar data shows water ice exists in permanently shadowed craters at the poles.",
+                    "Ancient Discovery: It has been known since ancient times because it is visible to the naked eye.",
+                    "Magnetic Field: Despite its size, it has a global magnetic field, suggesting its core is still partially liquid.",
+                    "Slow Rotation: While its year is fast, it rotates very slowly. One sidereal day takes 59 Earth days.",
+                    "Double Sunrise: Because of its elliptical orbit and slow spin, the Sun can appear to rise, set briefly, and rise again from some spots.",
+                    "Solar Day Length: One full day-night cycle on Mercury takes 176 Earth days—twice as long as its year!",
+                    "Egg-Shaped Orbit: It has the most eccentric (least circular) orbit of all the major planets.",
+                    "Surface Appearance: Its surface is heavily cratered and greyish-brown, looking very similar to the Moon.",
+                    "Messenger of Gods: It is named after the swift Roman messenger god due to its fast speed across the sky.",
+                    "Heaviest Core: It has more iron for its size than any other planet in our solar system.",
+                    "No Rings: Like the other terrestrial (rocky) planets, Mercury has no ring system.",
+                    "Mission Mariner 10: The first spacecraft to visit was Mariner 10, which mapped about 45% of the surface in the 1970s.",
+                    "MESSENGER Mission: NASA's MESSENGER was the first probe to orbit Mercury, crashing into it intentionally in 2015 after 4 years.",
+                    "BepiColombo: A joint European-Japanese mission is currently on its way to Mercury, arriving in late 2025.",
+                    "The 'Weird Terrain': There is a hilly, broken region exactly opposite the Caloris Basin, likely formed by shockwaves from the impact.",
+                    "Sodium Tail: Mercury has a comet-like tail extending millions of kilometers, created by solar wind pushing sodium atoms out of its atmosphere.",
+                    "Iron-to-Rock Ratio: Mercury has the highest iron content of any planet in the solar system, even higher than Earth.",
+                    "Magnetic Tornadoes: The solar wind occasionally twists Mercury's magnetic field into 'magnetic tornadoes' that funnel plasma onto the surface.",
+                    "Hollows: Unique, bright, shallow depressions called 'hollows' are found in crater floors, which scientists think are formed by sublimating materials.",
+                    "Gravity Anomalies: Variations in Mercury's crust thickness create significant gravity anomalies across the planet's surface.",
+                    "Impact Speed: Because Mercury is so deep in the Sun's gravity well, objects strike it at much higher speeds than they strike the Moon.",
+                    "Iron Sulfide Layer: Scientific models suggest a layer of iron sulfide may exist between Mercury's core and its mantle.",
+                    "Graphite Crust: Scientists believe Mercury's early surface may have been covered in a shell of graphite (the same material as pencil lead).",
+                    "Extreme Eccentricity: Its orbit is so elliptical that its distance from the Sun varies from 46 million to 70 million kilometers.",
+                    "3:2 Spin-Orbit Resonance: Mercury rotates exactly three times for every two orbits it makes around the Sun.",
+                    "Discovery of Water Ice: In 1991, Earth-based radar first detected highly reflective spots at the poles, later confirmed as water ice.",
+                    "Volcanic Plains: Huge portions of the northern hemisphere are covered in smooth volcanic plains formed billions of years ago.",
+                    "Surface Pressure: The surface pressure is less than one-trillionth of Earth's, making it a nearly perfect vacuum.",
+                    "Orbital Velocity: Mercury travels through space at nearly 47 kilometers per second (105,000 miles per hour).",
+                    "The Spider (Pantheon Fossae): A unique feature in the Caloris Basin consisting of over 100 radiating cracks (graben) around a central crater.",
+                    "Low Albedo: Mercury reflects only about 11% of the sunlight that hits it, making it quite dark despite its brightness from Earth.",
+                    "Potassium and Thorium: Data from the MESSENGER probe showed surprisingly high levels of volatile elements like potassium, changing theories on how it formed.",
+                    "Crust Thickness: The planet's crust is estimated to be between 35 and 53 kilometers thick.",
+                    "Lobate Scarps: Some of the 'wrinkle' cliffs on Mercury are over 3 kilometers high and stretch for hundreds of kilometers.",
+                    "Lack of Tectonic Plates: Unlike Earth, Mercury is a 'one-plate' planet where the entire crust is a single solid shell.",
+                    "Mantle Composition: Mercury has a very thin mantle (only about 400km thick) compared to Earth's 2,900km mantle.",
+                    "Sun-Driven Erosion: The surface is constantly altered by 'space weathering'—micrometeorite impacts and solar particle bombardment.",
+                    "Radar Reflectivity: The ice in Mercury's craters is so pure that it is more reflective to radar than the surrounding rock.",
+                    "Einstein’s Proof: Observations of the slight shift in Mercury's orbit (perihelion precession) provided early proof for Einstein's General Theory of Relativity.",
+                    "Core Solidification: Scientists are still debating if the inner core is solid or if the entire core is a churning liquid."
+                ],
+                adv: ["Proximity to immense solar energy.", "Rich in iron & metals."], dis: ["No breathable air.", "Extreme temperature fluctuations."]
+            },
+            "Venus": {
+                hab: 0.0, points: ["The Upside-Down Planet: Venus rotates on its axis backwards (retrograde) compared to most other planets.",
+                    "A Day Longer than a Year: It takes 243 Earth days to rotate once, but only 225 Earth days to orbit the Sun.",
+                    "Earth’s Evil Twin: It is almost identical in size and mass to Earth, but has a surface like a furnace.",
+                    "Hottest Planet: Despite being further from the Sun than Mercury, its thick atmosphere traps heat at a constant 471°C.",
+                    "Crushing Pressure: Standing on Venus would feel like being 900 meters (3,000 feet) underwater on Earth.",
+                    "Acid Rain: The clouds on Venus are made of sulfuric acid, which evaporates before hitting the ground.",
+                    "Super-Rotation: While the planet spins slowly, its winds move at 360 km/h, circling the entire planet in just 4 days.",
+                    "Volcano Capital: Venus has more volcanoes than any other planet in the solar system (over 1,600 major ones).",
+                    "Snow of Metal: On high mountain peaks, Venus has 'snow' made of galena and bismuthinite (metallic lead).",
+                    "No Magnetic Field: Unlike Earth, Venus lacks an internal dynamo to create a global magnetic field.",
+                    "The Maxwell Montes: Its tallest mountain is 11 kilometers high, taller than Mount Everest.",
+                    "Venera 13: The Soviet probe Venera 13 survived the surface for only 127 minutes before being destroyed by heat and pressure.",
+                    "Missing Water: Scientists believe Venus once had oceans, but the runaway greenhouse effect boiled them away.",
+                    "The Morning Star: It is the brightest natural object in Earth's sky after the Moon.",
+                    "No Moons: Venus and Mercury are the only planets in our solar system with zero natural satellites.",
+                    "Young Surface: Most of the surface appears to have been 'repaved' by global volcanic activity 300-500 million years ago.",
+                    "Pancake Domes: Venus features unique flat-topped volcanoes called 'Farra' that look like giant pancakes.",
+                    "Lightning in the Clouds: Spacecraft have detected electrical bursts in the atmosphere, suggesting frequent lightning.",
+                    "Carbon Dioxide Prison: The atmosphere is 96.5% CO2, creating a permanent greenhouse effect.",
+                    "Circular Orbit: Venus has the most circular orbit of any planet, with an eccentricity of less than 1%.",
+                    "The Phosphine Mystery: In 2020, traces of phosphine gas were detected in the clouds, which on Earth is produced by life.",
+                    "Slowest Rotation: It has the slowest rotation speed of any major planet in the solar system.",
+                    "Visible Transit: Venus is one of the few planets that can be seen crossing in front of the Sun from Earth.",
+                    "Maat Mons: This massive volcano may still be active today, according to recent radar data analysis.",
+                    "Spider-Web Fractures: Venus has 'Arachnoids,' circular features with radiating fractures that look like spider webs.",
+                    "Atmospheric Mass: The air on Venus is so thick that it is roughly 93 times heavier than Earth's atmosphere.",
+                    "Solar Wind Erosion: Because it has no magnetic field, the Sun's wind is slowly stripping the upper atmosphere away.",
+                    "The Ashen Light: For centuries, astronomers have reported a mysterious faint glow on the night side of Venus.",
+                    "Gravity Assist: NASA frequently uses Venus's gravity to 'slingshot' spacecraft like the Parker Solar Probe toward the Sun.",
+                    "No Craters Smaller than 2km: Small meteors burn up completely in the thick atmosphere before they can hit the surface.",
+                    "Double Vortices: The south pole of Venus has a massive, permanent double-eye atmospheric vortex.",
+                    "Yellow Skies: From the surface, the sky would appear a hazy orange or yellow due to Rayleigh scattering.",
+                    "The 'Greenhouse' Name: Venus is the primary reason scientists began studying the greenhouse effect on Earth.",
+                    "Sub-Critical Fluid: Near the surface, the CO2 is so compressed it behaves like a 'supercritical fluid' (half-gas, half-liquid).",
+                    "Pioneer Venus 1: This mission discovered that the Venusian ionosphere is highly affected by solar activity.",
+                    "Galileo's Discovery: Galileo was the first to see that Venus has phases like the Moon, proving it orbits the Sun.",
+                    "The 'Windy' Night: Even on the dark side, the winds remain incredibly fast and turbulent.",
+                    "Coronae: Large, crown-like volcanic structures formed by plumes of rising magma pushing the crust up.",
+                    "Tessera Terrain: These are the oldest regions on Venus, consisting of highly folded and deformed rock.",
+                    "Infrared Window: Venus is mostly opaque, but there are certain 'windows' in the infrared spectrum that let us see the surface.",
+                    "Mariner 2: This was the first successful robotic space mission to another planet (1962).",
+                    "The 'Great Unknown': Only about 2% of the Sun's light actually reaches the surface through the thick clouds.",
+                    "Volcanic Outgassing: The sulfuric acid clouds are likely replenished by ongoing volcanic eruptions.",
+                    "Planetary Spin-Down: Earth's gravity may exert a tiny tidal pull on Venus's thick atmosphere, affecting its rotation.",
+                    "Akatsuki Probe: A Japanese probe currently orbiting Venus to study its strange weather patterns.",
+                    "High Albedo: Venus reflects 70% of the sunlight it receives, which is why it looks so bright.",
+                    "Lava Channels: Venus has the longest lava channel in the solar system, Baltis Vallis, over 7,000 km long.",
+                    "Phases and Distance: Venus appears largest when it is a thin crescent because it is closest to Earth at that time.",
+                    "Magellan Mission: In the 1990s, the Magellan spacecraft mapped 98% of the surface using high-resolution radar.",
+                    "Future DAVINCI Mission: NASA plans to send a new probe in 2029 to drop through the atmosphere and take high-res photos."],
+                adv: ["Gravity is close to Earth's (90%).", "Carbon dioxide for terraforming."], dis: ["Crushing pressure.", "Rains sulfuric acid."]
+            },
+
+
+
+            "Earth": {
+                hab: 100, points: ["Not a Perfect Sphere: Earth is an 'oblate spheroid,' meaning it bulges at the equator due to its rotation.",
+                    "The Iron Core: Earth's core is a solid ball of iron and nickel as hot as the surface of the sun (about 5,400°C).",
+                    "Water World: While 71% of the surface is water, only 3% of that is fresh, and most of that is locked in glaciers.",
+                    "The Moving Crust: Earth is the only planet in the solar system known to have active plate tectonics.",
+                    "Magnetic Shield: Our magnetic field is generated by the churning liquid iron in the outer core, protecting us from solar wind.",
+                    "Oxygen Source: Most of Earth's oxygen doesn't come from forests, but from tiny ocean plants called phytoplankton.",
+                    "Extreme Pressure: At the bottom of the Mariana Trench, the pressure is equivalent to having an elephant stand on your thumb.",
+                    "The Goldilocks Zone: Earth orbits at the perfect distance from the Sun for liquid water to exist—not too hot, not too cold.",
+                    "Recycled Ground: The rock cycle constantly turns igneous rock into sedimentary and then metamorphic rock over millions of years.",
+                    "Highest Point from Center: Because of the equatorial bulge, Mt. Chimborazo in Ecuador is actually closer to space than Mt. Everest.",
+                    "Atmospheric Layers: 75% of Earth's atmospheric mass is concentrated in the first 11km (the Troposphere).",
+                    "The Moon's Origin: The leading theory (Theia Hypothesis) is that a Mars-sized planet crashed into Earth, creating the Moon.",
+                    "Lunar Braking: The Moon's gravity is slowly slowing Earth's rotation; days are getting longer by 1.7 milliseconds per century.",
+                    "Biological Variety: Scientists estimate that 86% of all terrestrial species and 91% of marine species have not yet been discovered.",
+                    "The Deepest Hole: The Kola Superdeep Borehole in Russia reached 12.2 km deep; it took 20 years to drill.",
+                    "Iron Weight: Earth is the densest planet in the solar system (5.51 g/cm³).",
+                    "Frozen Giants: If all Antarctic ice melted, sea levels would rise by about 60 meters (200 feet).",
+                    "Microbial Life: There are more individual organisms in a teaspoon of healthy soil than there are people on Earth.",
+                    "The Van Allen Belts: Two giant donuts of radiation trapped by Earth's magnetic field protect the atmosphere.",
+                    "Siberian Traps: One of the largest volcanic events in history happened in Siberia 250 million years ago, nearly wiping out all life.",
+                    "Stardust: Every year, about 40,000 tons of cosmic dust fall onto Earth from space.",
+                    "The Weight of Air: At sea level, the atmosphere presses down on your body with about 14.7 pounds per square inch.",
+                    "Ocean Exploration: We have better maps of the surface of Mars and the Moon than we do of our own ocean floor.",
+                    "The Great Oxidation Event: 2.4 billion years ago, cyanobacteria began producing oxygen, which was actually toxic to life at the time.",
+                    "Snowball Earth: Evidence suggests Earth was once completely covered in ice, from poles to equator, at least twice.",
+                    "Gravity is Uneven: Because of different mass distributions (mountains vs. deep trenches), gravity isn't the same everywhere on Earth.",
+                    "Oldest Rocks: The oldest known rocks on Earth are about 4 billion years old, found in the Canadian Shield.",
+                    "Atmospheric Escape: Earth loses about 95 tons of hydrogen and helium to space every single day.",
+                    "The Ozone Hole: The ozone layer is successfully healing thanks to the 1987 Montreal Protocol banning CFCs.",
+                    "Pangaea: 300 million years ago, all continents were joined into one supercontinent called Pangaea.",
+                    "Bioluminescence: In the deep ocean, 75-90% of creatures produce their own light to hunt or hide.",
+                    "The Core's Rotation: Scientists believe Earth's inner core might actually rotate faster than the rest of the planet.",
+                    "Earth’s 'Other' Moons: Earth occasionally captures small asteroids that orbit for a few months before flying away (Mini-moons).",
+                    "Lightning Strikes: Earth experiences about 8.6 million lightning strikes every single day.",
+                    "The Hum of the Earth: Earth has a constant low-frequency 'hum' that can only be picked up by special seismometers.",
+                    "Fresh Water Storage: Lake Baikal in Russia holds 20% of the world's unfrozen surface fresh water.",
+                    "Earth's Orbit: Our orbit isn't a circle; it's an ellipse. We are actually closest to the Sun in January (Perihelion).",
+                    "The Ionosphere: This upper layer of the atmosphere reflects radio waves, allowing long-distance communication.",
+                    "Plastic Tectonics: There is so much plastic in the ocean that it is forming new types of rock called 'plastiglomerates.'",
+                    "The Magnetic Flip: Earth's magnetic poles swap places every few hundred thousand years; the last one was 780,000 years ago.",
+                    "Distance to the Core: The distance from the surface to the center of the Earth is about 6,371 km.",
+                    "Volcanic Cooling: Massive eruptions can release enough ash to block sunlight and lower global temperatures for years.",
+                    "The Red Tide: Massive blooms of algae can turn coastal waters red and deplete oxygen, killing fish.",
+                    "Deepest Living Organisms: Bacteria have been found living nearly 3 kilometers underground in solid rock.",
+                    "Auroras: The Northern and Southern Lights are caused by solar particles colliding with gases in our upper atmosphere.",
+                    "Total Mass: Earth weighs approximately 6 sextillion tons (5.97 x 10^24 kg).",
+                    "Water from Space: Some scientists believe a significant amount of Earth's water was delivered by icy comets and asteroids.",
+                    "The Sahara's Dust: Dust from the Sahara Desert is blown across the Atlantic to fertilize the Amazon Rainforest.",
+                    "Greenhouse Balance: Without our natural greenhouse effect, the average temperature on Earth would be -18°C.",
+                    "Life's Resilience: Life has survived five major mass extinction events throughout Earth's history."],
+                adv: ["Perfect conditions for liquid water.", "Breathable atmosphere."], dis: ["FINITE fossil fuel resources.", " Natural disasters."]
+            },
+
+
+
+            "Mars": {
+                hab: 15.5, points: ["The Red Rust: Mars is red because its surface is covered in iron oxide—the same compound that makes old bikes and nails rust.",
+                    "Tallest Volcano: Olympus Mons is the largest volcano in the solar system; it is three times the height of Mt. Everest and the size of Arizona.",
+                    "Grandest Canyon: Valles Marineris is a canyon system 4,000 km long. If placed on Earth, it would stretch across the entire United States.",
+                    "Blue Sunsets: On Mars, the dust in the atmosphere scatters blue light forward, making the area around the Sun look blue to the eye.",
+                    "Two Moons: Mars has two small, lumpy moons—Phobos and Deimos—which are likely asteroids captured by Mars' gravity.",
+                    "Low Gravity: Mars has only 38% of Earth's gravity. You could jump nearly three times as high there as you can on Earth.",
+                    "A Doomed Moon: Phobos is spiraling closer to Mars at a rate of 1.8 meters every century. In 50 million years, it will crash or break into a ring.",
+                    "Extreme Cold: The average temperature is -62°C (-80°F), but it can plummet to -125°C at the poles during winter.",
+                    "Tharsis Bulge: A massive volcanic plateau near the equator that is so heavy it may have caused the entire planet to 'tilt' billions of years ago.",
+                    "Thin Atmosphere: The air is 100 times thinner than Earth's and is 95% carbon dioxide, making it unbreathable and bad at holding heat.",
+                    "The Martian 'Sol': A day on Mars is called a 'Sol' and lasts 24 hours and 37 minutes—remarkably close to an Earth day.",
+                    "Long Years: Because it is further from the Sun, a year on Mars lasts 687 Earth days—almost double an Earth year.",
+                    "Global Dust Storms: Mars has the largest dust storms in the solar system, which can occasionally shroud the entire planet for months.",
+                    "Frozen CO2: The polar ice caps are not just water; they have a thick layer of 'dry ice' (frozen carbon dioxide) that grows and shrinks with seasons.",
+                    "Martian 'Spiders': Seasonal CO2 gas eruptions create dark, spider-shaped radial patterns on the southern ice caps.",
+                    "The Borealis Basin: A massive crater covers 40% of the planet's northern hemisphere, potentially created by a colossal ancient impact.",
+                    "Missing Magnetic Field: Mars lost its global magnetic field 4 billion years ago, allowing solar winds to strip away its atmosphere.",
+                    "Ancient Water: Geological evidence like dried-up riverbeds and deltas proves that liquid water once flowed across the surface.",
+                    "Vesta Meteorites: Some rocks found on Earth actually came from Mars, blasted off by asteroid impacts and traveling through space to land here.",
+                    "Sound of Mars: High-frequency sounds travel faster than low-frequency sounds on Mars due to the CO2 atmosphere, creating a 'delay' in audio.",
+                    "Martian Snow: NASA's Phoenix lander observed 'dry ice' snow falling from clouds, though it sublimates before hitting the ground.",
+                    "The Face on Mars: A famous 1976 photo showed a hill resembling a face; later high-res photos proved it was just a natural mesa.",
+                    "Methane Mystery: Rovers have detected 'puffs' of methane gas, which on Earth is often a sign of biological life or geological activity.",
+                    "Hellas Planitia: The deepest impact basin on Mars; its bottom is 7km deep. The air pressure at the bottom is high enough for water to briefly stay liquid.",
+                    "Dust Devils: Towering 'tornadoes' of dust move across the plains daily, cleaning the solar panels of rovers and extending their missions.",
+                    "Argon and Nitrogen: While mostly CO2, the atmosphere also contains roughly 2.7% Nitrogen and 1.6% Argon.",
+                    "Egg-Shaped Orbit: Mars has a very elliptical orbit, which causes its seasons to be unequal in length (Spring is the longest).",
+                    "Martian Glass: Impacts on Mars are so powerful they can flash-melt soil into glass, which might preserve ancient microbial fossils.",
+                    "Iron Core: Unlike Earth's liquid outer core, Mars' core is believed to be solid or only partially liquid and rich in sulfur.",
+                    "Utopia Planitia: A massive plain where the Viking 2 lander found widespread water ice just below a thin layer of dust.",
+                    "The 'Her Desher': Ancient Egyptians called Mars 'Her Desher,' meaning 'The Red One.'",
+                    "Magnetic Umbrellas: Though it has no global field, Mars has 'crustal remnants'—small patches of magnetism that shield tiny areas from radiation.",
+                    "Atmospheric Loss: Mars is still losing its atmosphere today; about 100 grams of gas are stripped away every second by solar wind.",
+                    "Curiosity’s Birthday: In 2013, the Curiosity rover used its vibration motor to 'hum' Happy Birthday to itself while alone on the planet.",
+                    "Radiation Risk: A human on the surface would receive 20 times more radiation than on Earth due to the lack of an ozone layer.",
+                    "Jezero Crater: This site was once an ancient river delta and is currently being explored by the Perseverance rover for signs of life.",
+                    "Inhabited by Robots: Mars is the only planet currently 'populated' solely by robotic explorers (rovers, landers, and orbiters).",
+                    "High Albedo Variations: The dark regions like Syrtis Major are actually old volcanic plains with less dust than the brighter red areas.",
+                    "Subsurface Lakes: Radar data from the Mars Express orbiter suggests a large lake of salty liquid water may exist 1.5km under the South Pole.",
+                    "The 'Weird' Sky: During the day, the sky is pinkish-tan; during sunset, it turns blue—the opposite of Earth's sky colors.",
+                    "Crust Thickness: The Martian crust is between 10km and 50km thick, significantly thicker than Earth's oceanic crust.",
+                    "Gravitational Anomalies: Variations in crust density mean gravity is slightly stronger or weaker depending on where you stand on Mars.",
+                    "Impact Speed: Because it is near the asteroid belt, Mars is hit by meteorites much more frequently than Earth.",
+                    "Seasonal Pressure: Up to 25% of the atmosphere freezes onto the poles every winter, causing the global air pressure to drop significantly.",
+                    "No Plate Tectonics: Because Mars has no moving plates, volcanoes like Olympus Mons could stay over a 'hotspot' and grow for billions of years.",
+                    "Mariner 4: The first spacecraft to successfully fly by Mars in 1965, sending back the first close-up photos of another planet.",
+                    "Phobos' Craters: The moon Phobos has a massive crater named Stickney; the impact was so big it nearly shattered the moon.",
+                    "Twilight Haze: Martian twilight lasts a very long time because dust high in the atmosphere continues to reflect sunlight after the Sun sets.",
+                    "The Great Dichotomy: The northern hemisphere is mostly smooth, low plains, while the southern hemisphere is high, cratered highlands.",
+                    "Terraforming Potential: Scientists estimate that if we could melt the polar ice, the released CO2 could thicken the atmosphere enough to raise temperatures."
+                ],
+                adv: ["Day length identical to Sol.", "Water ice can be extracted."], dis: ["Perchlorates in toxic soil.", "Zero radiation protection."]
+            },
+
+
+            "Jupiter": {
+                hab: 0.0, points: ["Planetary Heavyweight: Jupiter is more than twice as massive as all the other planets in our solar system combined.",
+                    "A Failed Star: It has the same ingredients as a star (Hydrogen and Helium) but lacks the mass to ignite nuclear fusion.",
+                    "Shortest Day: Despite its size, Jupiter spins once every 9 hours and 55 minutes—the fastest rotation in the solar system.",
+                    "Equatorial Bulge: Its rapid spin causes it to bulge at the equator and flatten at the poles, making it noticeably non-spherical.",
+                    "The Great Red Spot: A massive storm larger than Earth that has been raging for at least 350 years.",
+                    "Shrinking Storm: Recent observations show the Great Red Spot is slowly becoming more circular and smaller over time.",
+                    "Internal Heat Source: Jupiter emits more heat than it receives from the Sun, likely due to slow gravitational contraction.",
+                    "The Largest Ocean: Deep inside, hydrogen is compressed into a liquid, creating the solar system's largest ocean—made of liquid metal.",
+                    "Magnetic Powerhouse: Its magnetic field is 14 to 20 times stronger than Earth's, stretching millions of kilometers into space.",
+                    "Radiation Belt: Jupiter’s magnetosphere traps particles into intense radiation belts that would be lethal to unshielded humans.",
+                    "Radio Noise: It is a powerful source of radio waves, sometimes radiating more energy than the Sun at certain frequencies.",
+                    "A Miniature Solar System: With over 95 moons, Jupiter's gravity and influence create a complex system of orbiting bodies.",
+                    "Ganymede: The largest moon in the solar system, it is even bigger than the planet Mercury and has its own magnetic field.",
+                    "Io's Volcanoes: Jupiter’s moon Io is the most volcanically active body in the solar system due to 'tidal heating' from Jupiter.",
+                    "Europa’s Hidden Ocean: This moon is covered in a shell of ice, beneath which lies a saltwater ocean that could contain twice as much water as Earth.",
+                    "Callisto’s Ancient Surface: It is the most heavily cratered object in the solar system and has the oldest surface.",
+                    "The Great Protector: Jupiter's massive gravity acts as a 'vacuum cleaner,' pulling in or redirecting dangerous comets away from Earth.",
+                    "Shoemaker-Levy 9: In 1994, humans watched in real-time as fragments of a comet crashed into Jupiter, leaving scars visible for months.",
+                    "Faint Ring System: Unlike Saturn’s icy rings, Jupiter has four thin rings made of dark dust particles blasted off its moons.",
+                    "No Solid Surface: There is no place to 'land' on Jupiter; the gas just gets denser and hotter until it becomes liquid.",
+                    "The 'Fuzzy' Core: Data from the Juno probe suggests Jupiter’s core might be 'dilute' or 'fuzzy'—partially dissolved rather than a solid rock.",
+                    "Diamond Rain: High pressure in the atmosphere could potentially turn carbon into diamonds that 'rain' down toward the interior.",
+                    "Stripes and Zones: The dark stripes are called 'belts' (sinking gas) and light stripes are 'zones' (rising gas).",
+                    "Jet Streams: Winds at the equator can reach speeds of 539 km/h (335 mph).",
+                    "Auroras on Steroids: Jupiter has permanent, massive auroras at its poles that are hundreds of times more energetic than Earth’s.",
+                    "Galilean Footprints: The moons Io, Europa, and Ganymede leave 'footprints' (bright spots) in Jupiter's auroras.",
+                    "The Trojan Asteroids: Jupiter shares its orbit with two massive groups of asteroids that 'follow' and 'lead' it around the Sun.",
+                    "3-Degree Tilt: Jupiter spins almost perfectly upright, meaning it has no seasons like Earth or Mars.",
+                    "Distance to Sun: It orbits about 5.2 times further from the Sun than Earth does (approx. 778 million km).",
+                    "Long Year: One year on Jupiter (one orbit around the Sun) takes nearly 12 Earth years.",
+                    "Ancient Discovery: Jupiter has been known since ancient times because it is the third brightest object in the night sky.",
+                    "Named for a King: It is named after the king of the Roman gods, the equivalent of the Greek god Zeus.",
+                    "Pioneer 10: The first spacecraft to fly past Jupiter (1973), providing the first close-up images.",
+                    "Voyager’s Discovery: The Voyager missions (1979) were the first to discover Jupiter’s thin rings and active volcanoes on Io.",
+                    "The Galileo Orbiter: The first dedicated spacecraft to orbit Jupiter; it even dropped a probe into the atmosphere in 1995.",
+                    "Juno’s Polar View: The Juno mission (current) discovered that Jupiter's poles are covered in clusters of Earth-sized cyclones.",
+                    "Water Mystery: Scientists are still trying to determine exactly how much water is hidden in Jupiter's deep atmosphere.",
+                    "Ammonia Clouds: The topmost visible clouds are made of ammonia crystals, while deeper clouds are made of water ice.",
+                    "Great Cold Spot: Scientists recently discovered a 'Great Cold Spot' in the upper atmosphere caused by its intense auroras.",
+                    "Density: Jupiter is only 1.3 times as dense as water; if you could find a bathtub big enough, it wouldn't float (unlike Saturn), but it's close.",
+                    "Escape Velocity: To leave Jupiter, you would need to travel at 60 km/s (134,000 mph)—over 5 times Earth's escape velocity.",
+                    "Gravity at Cloud Tops: If you could stand on the 'surface,' you would weigh 2.4 times more than you do on Earth.",
+                    "Brown Oval Storms: Besides the Red Spot, Jupiter has 'Brown Ovals'—long-lived storms that look like dark pits in the clouds.",
+                    "String of Pearls: A series of counter-clockwise rotating white storms that often appear in the southern hemisphere.",
+                    "Slightly Shrinking: Jupiter is actually shrinking by about 2 centimeters every year as it radiates heat and cools down.",
+                    "First Planet Formed: Jupiter was likely the first planet to form in our solar system, scooping up most of the gas left over from the Sun.",
+                    "Visible to Naked Eye: You can see Jupiter from Earth without a telescope; it looks like a very bright, steady white 'star.'",
+                    "Jupiter Icy Moons Explorer (JUICE): A mission launched in 2023 currently on its way to study Jupiter's moons (arriving 2031).",
+                    "Europa Clipper: A NASA mission launched in 2024 to specifically investigate if Europa’s hidden ocean could support life.",
+                    "The Great 'Filter': Many scientists believe Jupiter's gravity helped 'clear' the early solar system, allowing Earth to form safely."
+                ],
+                adv: ["Slingshot maneuvers.", "Europa subsurface ocean."], dis: ["Intense radiation belts.", "No solid surface."]
+            },
+
+
+            "Saturn": {
+                hab: 0.0, points: [
+                    "The Moon King: As of March 2025, Saturn is the solar system's moon leader with 274 confirmed moons—nearly twice as many as all other planets combined.",
+                    "Floatable Planet: Saturn is the only planet less dense than water; it would literally float in a giant bathtub.",
+                    "The Vanishing Rings: On March 23, 2025, Saturn’s rings appeared to 'disappear' from Earth's view as they tilted perfectly edge-on (an event that happens every 15 years).",
+                    "The North Pole Hexagon: A permanent six-sided jet stream storm sits at the north pole—each side is longer than the diameter of Earth.",
+                    "Ravioli Moon: The moon Pan has a massive equatorial ridge that gives it the distinct appearance of a piece of ravioli.",
+                    "Color-Shifting Poles: Saturn's hexagon changes color with the seasons, shifting from a hazy blue to a golden-orange due to sunlight-driven chemistry.",
+                    "Ring Rain: Saturn is slowly 'eating' its own rings; gravity pulls the ice particles down into the atmosphere as a constant 'rain' of water.",
+                    "Titan’s Liquid Seas: Saturn’s largest moon, Titan, is the only other place in the solar system with stable liquid on its surface (though it's methane, not water).",
+                    "Enceladus Geysers: The moon Enceladus shoots massive plumes of salt water and organic molecules into space from its hidden subsurface ocean.",
+                    "Metal Snow: On some moons, lightning can turn methane into carbon soot which falls as 'diamond rain' or metallic frost.",
+                    "The Death Star Moon: The moon Mimas has a massive crater (Herschel) that makes it look exactly like the Death Star from Star Wars.",
+                    "Metallic Hydrogen Core: Deep inside, the pressure is so high that hydrogen gas is squeezed into a liquid metal that conducts electricity.",
+                    "The Great White Spot: Every 30 Earth years (one Saturnian year), a planet-wide white storm erupts, large enough to wrap around the entire planet.",
+                    "Supersonic Winds: Equatorial winds can reach speeds of 1,800 km/h (1,100 mph)—faster than a Concorde jet.",
+                    "Ancient Observations: It is the most distant planet visible to the naked eye and was tracked by Babylonian astronomers in the 7th century BCE.",
+                    "Short Days: It has the second-shortest day in the solar system, rotating once every 10 hours and 33 minutes.",
+                    "Extreme Flatness: Because it spins so fast and is so light, Saturn is the 'flattest' planet; its polar diameter is 10% smaller than its equatorial diameter.",
+                    "The E-Ring Source: Saturn’s outer E-ring is actually made entirely of the frozen 'spray' from Enceladus’s water geysers.",
+                    "Titan is a Giant: Titan is larger than the planet Mercury and is the only moon in the solar system with a thick, nitrogen-rich atmosphere.",
+                    "Braided Rings: The narrow F-Ring has a 'braided' appearance caused by two tiny shepherd moons, Prometheus and Pandora, tugging on it.",
+                    "Radio Emitter: Saturn is a powerful radio source; its emissions vary in intensity based on its rotation and interactions with its moons.",
+                    "The Cassini Division: The largest gap in the rings is 4,800 km wide—wide enough for the United States to fit inside it.",
+                    "Old or Young Rings?: Astronomers are still debating ring age; some evidence suggests they are 4 billion years old, while others say only 100 million.",
+                    "Walnut Moon: The moon Iapetus has a 13-kilometer high mountain range that perfectly circles its equator, making it look like a walnut shell.",
+                    "Two-Faced Moon: Iapetus is also half pitch-black and half snow-white, a mystery solved by dark dust falling on one side and causing ice to evaporate.",
+                    "The Spokes: Mysterious dark 'spokes' sometimes appear across the rings; they are thought to be sheets of dust levitated by static electricity.",
+                    "Magnetic Alignment: Unlike any other planet, Saturn's magnetic poles are almost perfectly aligned with its rotational axis.",
+                    "Internal Heating: Saturn radiates 2.5 times more heat than it receives from the Sun, likely caused by 'helium rain' falling toward its center.",
+                    "Named for Agriculture: It is named after the Roman god of wealth and agriculture; the day 'Saturday' also bears its name.",
+                    "Galileo’s Ears: When Galileo first saw the rings in 1610, his telescope was so weak he thought they were two large handles or 'ears' on the planet.",
+                    "Atmospheric Composition: It is 96% Hydrogen and 3% Helium, with trace amounts of methane, ammonia, and ethane.",
+                    "The G-Ring: One of the most recently discovered rings (1980), it is a faint, narrow band located between the E and F rings.",
+                    "Dragon Storm: A massive, long-lived electrical storm in the southern hemisphere that emits radio bursts 1,000 times stronger than Earth's lightning.",
+                    "Meatball Moon: The moon Janus is irregularly shaped and pockmarked, leading astronomers to nickname it the 'meatball.'",
+                    "Moon Swapping: The moons Janus and Epimetheus 'swap' orbits every four years, narrowly avoiding a collision in a cosmic dance.",
+                    "Oxygen Atmosphere: The moon Dione has a very thin atmosphere made of pure oxygen, though it's too thin for humans to breathe.",
+                    "Hyperion’s Sponge: The moon Hyperion is so porous (filled with holes) that it looks like a giant floating sponge or wasp nest.",
+                    "The Huygens Landing: In 2005, the Huygens probe landed on Titan—the most distant landing ever achieved by human technology.",
+                    "Diamond Core?: Some models suggest Saturn's rocky core is surrounded by a layer of 'liquid diamond' due to extreme heat and pressure.",
+                    "Seasonal Haze: During the Saturnian equinox, the Sun’s angle causes the rings to cast long, vertical shadows onto the planet’s clouds.",
+                    "Pioneer 11: The first spacecraft to reach Saturn (1979); it discovered the F-ring and confirmed the planet was mostly liquid.",
+                    "Voyager’s Discovery: The Voyager missions in 1980/81 discovered that Saturn's rings are actually thousands of tiny 'ringlets.'",
+                    "The Cassini Legacy: The Cassini orbiter studied Saturn for 13 years before a planned 'suicide' plunge into its atmosphere in 2017.",
+                    "Escaping Hydrogen: Saturn loses about 100 kg of its atmosphere into space every second.",
+                    "Gravity Slingshot: Saturn’s gravity is frequently used to accelerate spacecraft toward the outer edges of the solar system.",
+                    "Ring Thickness: Despite being 280,000 km wide, the main rings are incredibly thin—averaging only 10 to 30 meters thick.",
+                    "Subsurface Oceans: Besides Enceladus and Titan, the moons Dione and Mimas are now suspected of having hidden underground oceans.",
+                    "The Red Ring: The moon Phoebe has its own giant, dark 'infrared' ring that is invisible to the eye and 7,000 times the diameter of Saturn.",
+                    "Vortex in the South: While the North has a hexagon, the South Pole has a massive circular vortex with an eye like a hurricane.",
+                    "Future Exploration: NASA's 'Dragonfly' mission is scheduled to launch in 2028 to fly a drone across the surface of Titan."
+                ],
+                adv: ["Titan is prime candidate (air, liquid).", " unlimited water ice from rings."], dis: ["Supersonic wind speeds.", "Extremely high pressure."]
+            },
+
+
+
+            "Uranus": {
+                hab: 0.0, points: ["The Sideways Planet: Uranus has a massive axial tilt of 97.77 degrees, meaning it literally rolls around the Sun on its side.",
+                    "The Coldest Giant: Despite being closer to the Sun than Neptune, Uranus holds the record for the coldest temperature ever recorded on a planet (-224°C).",
+                    "Telescopic First: It was the first planet discovered with the aid of a telescope, found by William Herschel in 1781.",
+                    "Namesake Mystery: It is the only planet named after a Greek god (Ouranos) rather than a Roman one.",
+                    "King George's Planet: Discoverer William Herschel originally tried to name it 'Georgium Sidus' after King George III.",
+                    "Atmospheric Stink: The upper clouds are filled with hydrogen sulfide, the same chemical that makes rotten eggs smell terrible.",
+                    "Extreme Seasons: Because it tilts on its side, each pole gets 42 years of continuous sunlight followed by 42 years of darkness.",
+                    "The Diamond Rain: Deep in the mantle, intense pressure may squeeze carbon into solid diamonds that rain down toward the core.",
+                    "Methane Hue: Its cyan blue-green color is caused by methane gas absorbing red light and reflecting blue and green back into space.",
+                    "Retrograde Rotation: Like Venus, Uranus rotates from East to West—the opposite direction of Earth and most other planets.",
+                    "The Ice Giant Label: Unlike the gas giants (Jupiter/Saturn), 80% of Uranus's mass is a hot, dense fluid of 'icy' materials like water, methane, and ammonia.",
+                    "Faint Rings: Uranus has 13 known rings; they are very dark and thin, likely made of crushed-up moons.",
+                    "Outer Blue Ring: While most of its rings are grey, the outermost ring (Mu) is bright blue, similar to Saturn’s E-ring.",
+                    "Shakespearean Moons: Most of its 28 moons are named after characters from William Shakespeare and Alexander Pope (e.g., Titania, Oberon, Miranda).",
+                    "Miranda’s Patchwork: The moon Miranda looks like it was smashed apart and glued back together, featuring 20km-deep canyons.",
+                    "Lopsided Magnetosphere: Its magnetic field is tilted 59 degrees from its spin axis and is offset from the planet’s center.",
+                    "Flickering Magnetic Field: Recent data suggests the magnetic field may 'flicker' on and off as the planet rotates.",
+                    "Short Day, Long Year: A day on Uranus is 17 hours and 14 minutes, but it takes 84 Earth years to orbit the Sun once.",
+                    "The 'Great Collision': Scientists believe Uranus was knocked onto its side by a collision with an Earth-sized protoplanet billions of years ago.",
+                    "Second Least Dense: It is the second least dense planet in the solar system after Saturn.",
+                    "Internal Heat Deficit: Unlike the other giant planets, Uranus gives off very little more heat than it receives from the Sun.",
+                    "Supersonic Winds: Winds at the equator can reach speeds of 900 km/h (560 mph), blowing in the opposite direction of the rotation.",
+                    "Atmospheric Layers: It has a complex cloud structure with water clouds at the bottom and methane clouds at the top.",
+                    "Voyager 2: Only one spacecraft has ever visited Uranus (Voyager 2 in 1986). No other mission has been back since.",
+                    "Expanding Boundaries: Its discovery effectively doubled the known size of the solar system at the time.",
+                    "X-Ray Emissions: In 2021, astronomers detected X-rays coming from Uranus for the first time, likely reflected from the Sun.",
+                    "Weak Auroras: Unlike Jupiter's massive auroras, Uranus has small, short-lived 'spots' of light that don't always align with the poles.",
+                    "Oblate Spheroid: Because it spins so fast, it is wider at the equator than at the poles (flattened by about 2.3%).",
+                    "The 128 BC Sighting: The ancient astronomer Hipparchus likely recorded Uranus as a star in his catalog over 2,000 years ago.",
+                    "Flamsteed’s Mistake: Astronomer John Flamsteed observed Uranus 6 times in 1690 but cataloged it as the star '34 Tauri'.",
+                    "Escape Velocity: To leave Uranus, you'd need to travel 21.3 km/s (over 47,000 mph).",
+                    "Gravity Similarity: Despite its size, Uranus’s gravity is only 89% of Earth’s. You would weigh less there than on Earth.",
+                    "The Alpha and Beta Rings: These rings show mysterious 'ripples,' suggesting there are still undiscovered tiny moons hiding nearby.",
+                    "Ariel’s Brightness: Ariel is the brightest and youngest-looking of the Uranian moons.",
+                    "Umbriel’s Darkness: The moon Umbriel is the darkest and oldest-looking, reflecting only half as much light as Ariel.",
+                    "Titania’s Size: Titania is the largest moon of Uranus but is still less than half the size of Earth's Moon.",
+                    "Shepherd Moons: Cordelia and Ophelia are 'shepherd moons' that use gravity to keep the Epsilon ring in place.",
+                    "Sunlight Lag: It takes sunlight 2 hours and 40 minutes to travel from the Sun to Uranus.",
+                    "Dim Sun: From Uranus, the Sun looks 400 times dimmer than it does from Earth.",
+                    "The Trojan Orbit: Uranus has 'Trojan' asteroids that share its orbit at the Lagrange points.",
+                    "No Solid Surface: There is no solid ground; a spacecraft would simply sink through the gas into the hot, liquid mantle.",
+                    "Mantle Temperature: Despite the cold clouds, the liquid mantle near the core can reach 5,000°C (9,000°F).",
+                    "Supercritical Fluid: Much of the interior is in a 'supercritical' state—part gas, part liquid.",
+                    "Atmospheric Composition: It is roughly 83% hydrogen, 15% helium, and 2.3% methane.",
+                    "Discovery of Rings: Its rings were discovered accidentally in 1977 while scientists were watching a star pass behind the planet.",
+                    "Vertical Rings: Because the planet is on its side, the rings appear to stand vertically when viewed from certain angles.",
+                    "Radiation Environment: Uranus has a much quieter radiation environment compared to the intense belts of Jupiter.",
+                    "Uranium Connection: The element Uranium, discovered in 1789, was named in honor of the recently discovered planet.",
+                    "Ariel’s Volcanism: Ariel shows evidence of 'cryovolcanism,' where liquid water or ammonia 'lava' once flowed across its surface.",
+                    "Future Probe: In 2023, the 'Uranus Orbiter and Probe' mission was ranked as the highest priority for NASA’s next big space mission."
+                ],
+                adv: ["Abundant methane and water.", "Refueling Depot potential."], dis: ["Coldest planetary atmosphere.", "Extreme axial tilt seasons."]
+            },
+
+
+
+            "Neptune": {
+                hab: 0.0, points: ["Mathematical Discovery: Neptune is the only planet discovered through math rather than a telescope; astronomers noticed Uranus 'wobbling' and calculated where Neptune must be.",
+                    "Invisible to the Eye: It is the only planet in our solar system that is never visible to the naked eye, even under perfect conditions.",
+                    "Supersonic Winds: Neptune has the fastest winds in the solar system, reaching speeds of 2,100 km/h (1,300 mph)—faster than the speed of sound.",
+                    "The Great Dark Spot: Like Jupiter's Red Spot, Neptune had a massive Earth-sized storm in 1989 that completely disappeared by 1994, only for new ones to appear later.",
+                    "Extreme Distance: It is 30 times further from the Sun than Earth; sunlight takes about 4 hours and 12 minutes to reach it.",
+                    "The Diamond Rain: High pressure in the mantle is thought to turn carbon into solid diamonds that 'rain' down toward the core.",
+                    "Internal Heat Mystery: Despite being further away, Neptune is nearly as warm as Uranus because it generates twice as much heat as it receives from the Sun.",
+                    "Triton’s Retrograde Orbit: Neptune's largest moon, Triton, orbits 'backwards' (opposite to the planet's spin), proving it was likely a captured dwarf planet.",
+                    "Active Geysers: Triton is one of the few geologically active moons, with geysers that shoot nitrogen ice 8 kilometers into space.",
+                    "A Doomed Moon: Triton is slowly spiraling inward; in about 3.6 billion years, it will be torn apart by gravity, likely forming a ring larger than Saturn's.",
+                    "Vivid Blue: Its striking azure color comes from methane in the atmosphere, but scientists still don't know why it’s a deeper blue than its 'twin' Uranus.",
+                    "Short Day, Long Year: One day is only 16 hours, but one year (orbit) takes 165 Earth years—it has only completed one full orbit since its discovery.",
+                    "Faint Ring Arcs: Neptune has five rings, but the outer ring (Adams) has strange clumps called 'arcs' named Liberty, Equality, Fraternity, and Courage.",
+                    "Stability Mystery: The laws of physics say the ring arcs should spread out evenly, but they stay clumped together, likely stabilized by the moon Galatea.",
+                    "Mantle of Ice: Unlike gas giants, 80% of Neptune is a hot, dense 'icy' fluid of water, methane, and ammonia over a solid rocky core.",
+                    "Tilted Magnetic Field: Its magnetic field is tilted 47 degrees away from its rotation axis and is 'off-center' by thousands of kilometers.",
+                    "Magnetic Variations: Because its magnetic field is so lopsided, the planet’s magnetosphere undergoes wild, chaotic changes as it rotates.",
+                    "Galileo’s Mistake: Galileo actually recorded Neptune in 1612 but mistook it for a fixed star because it moves so slowly.",
+                    "Dense Heavyweight: While Uranus is slightly larger in size, Neptune is more massive and denser, making it the densest of all giant planets.",
+                    "Named for the Sea: Following its discovery in 1846, it was named after the Roman god of the sea due to its deep blue appearance.",
+                    "Voyager 2: The only spacecraft to ever visit Neptune was Voyager 2 in 1989; every image we have of the planet comes from that single flyby.",
+                    "High Albedo: It reflects nearly 30% of the sunlight it receives, which is quite high for a dark, distant world.",
+                    "The Dark Spot 2023: Using the Very Large Telescope (VLT) on Earth, astronomers recently detected a new dark spot—the first time one was seen from Earth.",
+                    "Dim Twilight: At high noon on Neptune, the Sun is so distant it would only look like a very bright star, providing light similar to twilight on Earth.",
+                    "Seasonal Shift: Because of its 28-degree tilt, Neptune has seasons, but since its year is so long, each season lasts over 40 Earth years.",
+                    "The 14 Moons: All of Neptune's moons are named after lesser Greek sea gods and nymphs, such as Nereid, Proteus, and Thalassa.",
+                    "Hippocamp Discovery: The 14th moon, Hippocamp, was only discovered in 2013 by re-analyzing old Hubble photos.",
+                    "Atmospheric Composition: It is roughly 80% hydrogen, 19% helium, and 1.5% methane, with traces of ammonia ice.",
+                    "Supercritical Fluid: Much of the 'ice' inside isn't solid ice; it’s a supercritical fluid that acts like both a gas and a liquid.",
+                    "Pluto’s Crossing: Every 248 years, Pluto’s orbit brings it closer to the Sun than Neptune for a 20-year period (last happened 1979–1999).",
+                    "Orbital Resonance: Neptune and Pluto are in a 3:2 resonance; for every three orbits Neptune makes, Pluto makes exactly two.",
+                    "X-Ray Mystery: In 2021, X-ray emissions were detected from Neptune, possibly caused by sunlight scattering or ions crashing into its atmosphere.",
+                    "The Scooters: High-speed, white clouds nicknamed 'scooters' have been observed racing around the planet faster than the main storm systems.",
+                    "Ocean of Electricity: The 'slushy' mantle of water and ammonia is likely highly conductive, which creates the planet's unique magnetic field.",
+                    "Stratospheric Heating: Neptune’s upper atmosphere is unexpectedly hot (480°C), a phenomenon scientists still cannot fully explain.",
+                    "Cloud Fluctuations: Neptune’s cloud cover seems to follow the 11-year solar cycle—clouds disappear when solar activity is low.",
+                    "Discovery of Rings (1984): Before Voyager confirmed them, scientists found the rings by watching a star 'flicker' as Neptune passed in front of it.",
+                    "Small Core: Its core is only about 1.2 times the mass of Earth, made of iron, nickel, and silicates.",
+                    "Surface Gravity: If you could stand on its clouds, gravity would be only 14% stronger than Earth's—the closest to Earth of all the giant planets.",
+                    "The Blue Ring: One of its rings is distinctly blue, similar to the blue rings of Uranus and Saturn, caused by specific particle sizes.",
+                    "Trojan Asteroids: Neptune has its own 'Trojans'—asteroids that share its orbit at stable points (L4 and L5).",
+                    "Proteus’s Shape: The moon Proteus is so large that its gravity almost pulls it into a sphere, but it remains slightly 'lumpy' and irregular.",
+                    "Nereid’s Wild Orbit: The moon Nereid has one of the most eccentric orbits of any moon, swinging from 1.3 million to 9.6 million km away.",
+                    "Escape Velocity: To leave Neptune, you would need to travel at 23.5 km/s (52,500 mph).",
+                    "Neptunian Quakes: Theoretical models suggest the planet experiences 'quakes' as heat escapes its interior and moves through the slushy mantle.",
+                    "Optical Illusion: Despite looking like a solid blue marble, the 'surface' is actually a series of hazy, translucent layers of gas.",
+                    "The Planet Parade (2026): On February 28, 2026, Neptune participated in a rare 6-planet alignment visible from Earth with telescopes.",
+                    "JWST Views: In 2022, the James Webb Space Telescope captured the clearest view of Neptune’s rings in over 30 years, showing them in infrared.",
+                    "Opposition 2026: Neptune will be at its closest and brightest point to Earth on September 26, 2026.",
+                    "Future Missions: Scientists have proposed the 'Neptune Odyssey' mission for the 2030s to finally return an orbiter to this distant world."
+                ],
+                adv: ["Subsurface activity on Triton.", "Vast methane resources."], dis: ["Furthest planet; decades to reach.", "Violent winds."]
+            },
+
+
+
+
+            "Pluto": {
+                hab: 0.0, points: ["The Heart of Pluto: Its most famous feature is a giant, heart-shaped nitrogen glacier named Tombaugh Regio, which is roughly the size of Texas.",
+                    "Smaller than the Moon: Pluto is only about 2,377 km wide—that's roughly 2/3 the diameter of Earth's Moon and half the width of the USA.",
+                    "The Binary System: Pluto and its largest moon, Charon, are so close in size that they orbit a point in empty space between them, making them a 'double dwarf planet.'",
+                    "Tidally Locked: Pluto and Charon always show the same face to each other. If you stood on one side of Pluto, Charon would hang motionless in the sky, never rising or setting.",
+                    "Blue Skies: Pluto has a hazy atmosphere that scatters blue light, very similar to the mechanism that makes Earth's sky blue.",
+                    "Mathematical Discovery: Like Neptune, Pluto’s existence was predicted by math before it was seen, as astronomers looked for 'Planet X' to explain orbital wobbles.",
+                    "Named by a Child: The name 'Pluto' was suggested by 11-year-old Venetia Burney in 1930, who thought the god of the underworld was a fitting name for a dark, distant world.",
+                    "Spinning Sideways: Pluto’s axis of rotation is tilted at 120 degrees, meaning it rotates almost completely on its side.",
+                    "Retrograde Rotation: Along with Venus and Uranus, Pluto rotates from East to West—the opposite direction of Earth.",
+                    "Five Moons: Despite its small size, Pluto has five known moons: Charon, Nix, Hydra, Kerberos, and Styx.",
+                    "The 'Pluto Time' App: Midday on Pluto is only as bright as the 'Blue Hour' (just after sunset) on Earth. You can still read a book, but it feels like deep twilight.",
+                    "Frozen Oceans: Scientists believe there is a liquid water ocean hidden 100km beneath Pluto’s icy crust, kept warm by radioactive decay in its core.",
+                    "The Ice Volcanoes: Giant features like Wright Mons are likely 'cryovolcanoes' that erupt a slushy mix of water, ice, and ammonia instead of lava.",
+                    "Diamond-Hard Water: At Pluto's temperatures (-230°C), water ice is so cold and hard that it behaves like solid rock, forming mountains as tall as the Rockies.",
+                    "Nitrogen 'Lava': While water ice forms the mountains, nitrogen ice is soft enough at these temperatures to flow like glaciers, filling the plains of Sputnik Planitia.",
+                    "The Missing Craters: Large parts of Pluto’s 'heart' have zero craters, meaning the surface is incredibly young (less than 10 million years old) and constantly renewing itself.",
+                    "Extreme Orbit: Its orbit is not a circle but a long oval. For 20 years of its 248-year journey, it actually crosses inside Neptune's orbit and becomes closer to the Sun.",
+                    "Orbit Inclination: Pluto doesn't orbit in the same 'flat' plane as the eight planets; it is tilted at a sharp 17-degree angle.",
+                    "Atmospheric Collapse: As Pluto moves further from the Sun, its thin atmosphere of nitrogen and methane is predicted to freeze and fall to the ground as snow.",
+                    "Red Polygons: The plains of Sputnik Planitia are divided into mysterious 20km-wide polygons, likely caused by convection—heat rising from the interior like a lava lamp.",
+                    "The 'Whale': A massive dark region along Pluto's equator is nicknamed 'Cthulhu Macula' (or The Whale) and is covered in dark, reddish organic molecules called tholins.",
+                    "Tholins: These 'complex organics' form when ultraviolet light hits methane and nitrogen, creating a reddish 'gunk' that acts as the building blocks of life chemistry.",
+                    "Floating Mountains: Because nitrogen ice is denser than water ice, Pluto's massive water-ice mountains might actually be 'floating' like icebergs in a nitrogen sea.",
+                    "Methane Snowcaps: Unlike Earth, where snow gets colder the higher you go, Pluto’s mountains are capped with methane frost that forms in the warmer upper atmosphere.",
+                    "Chaos Moons: Pluto's smaller moons (Nix, Hydra, Kerberos, Styx) don't have stable rotations; they tumble and wobble chaotically due to the gravity of the Pluto-Charon pair.",
+                    "Sunlight Lag: It takes sunlight 5.5 hours to travel from the Sun to Pluto—compared to only 8 minutes for Earth.",
+                    "Escape Velocity: Gravity is so weak (6% of Earth's) that the escape velocity is only 1.2 km/s. You could theoretically throw a ball into space with a high-powered machine.",
+                    "Weight on Pluto: If you weigh 100kg on Earth, you would weigh only 7kg on Pluto.",
+                    "The 1930 Discovery: Clyde Tombaugh discovered Pluto using a 'blink comparator' to find a tiny dot that moved between two photographs of the stars.",
+                    "Stolen Ashes: The New Horizons spacecraft, which visited Pluto in 2015, carries a small amount of Clyde Tombaugh's ashes.",
+                    "Plutonium Powered: Because the Sun is so dim there, New Horizons was powered by a radioisotope thermoelectric generator (nuclear battery) using Plutonium.",
+                    "No Magnetic Field: Pluto likely lacks a global magnetic field, leaving its atmosphere vulnerable to being stripped away by solar wind.",
+                    "X-Ray Mystery: Unexpectedly, New Horizons detected X-rays coming from Pluto, likely caused by the interaction between the solar wind and Pluto's atmosphere.",
+                    "The Kuiper Belt King: Pluto is the largest known object in the Kuiper Belt, a region of icy debris left over from the formation of the solar system.",
+                    "Not Yet Explored: Until 2015, the best images of Pluto from the Hubble Telescope were just blurry brown pixels. We have only known what it 'really' looks like for a decade.",
+                    "One Full Orbit: Since its discovery in 1930, Pluto has not yet completed a single full orbit around the Sun. It won't finish its first 'Pluto Year' until Monday, March 23, 2178.",
+                    "Charon's Red Cap: Charon’s North Pole (Mordor Macula) is stained red by methane gas that escaped Pluto's atmosphere and became trapped on the moon.",
+                    "Surface Pressure: The air pressure on Pluto is 100,000 times lower than on Earth—it’s a near-vacuum.",
+                    "The 'Snakeskin' Terrain: Regions of Pluto have tall, bladed ridges of methane ice called 'penitentes' that look like scales, reaching hundreds of meters into the air.",
+                    "Dunes of Solid Methane: New Horizons found evidence of 'sand' dunes made of solid grains of methane ice, blown into ripples by the thin wind.",
+                    "Naming the Features: The IAU has themed Pluto's features around underworld gods, explorers, and pioneering space missions (e.g., Tenzing Montes, named for Tenzing Norgay).",
+                    "The Pluto-Neptune Dance: A stable 3:2 resonance ensures that Pluto and Neptune never collide, even though their orbits cross.",
+                    "Planetary Status: In 2006, the IAU demoted Pluto because it hasn't 'cleared its neighborhood' of other objects (like the thousands of Kuiper Belt asteroids).",
+                    "Asteroid Number: After its demotion, Pluto was assigned the asteroid number 134340.",
+                    "Atmospheric Extension: Because of the low gravity, Pluto's atmosphere extends much higher above its surface relative to its size than Earth's does.",
+                    "Sublimation: Much of Pluto's geology is driven by 'sublimation'—ice turning directly into gas without melting, carving out pits and valleys.",
+                    "Hydra's Reflectivity: The moon Hydra is surprisingly bright, suggesting its surface is covered in nearly pure, clean water ice.",
+                    "The 11-Year-Old's Prize: Venetia Burney was awarded £5 (about $300 today) for naming the planet.",
+                    "Plutoids: Pluto is the 'prototype' for a new class of objects called 'Plutoids'—dwarf planets that orbit beyond Neptune.",
+                    "Future Return: While there are no current missions planned to go back, scientists are designing 'Pluto Landers' that could use the thin atmosphere to land softly in the 2050s."
+                ],
+                adv: ["Rich source of water and methane.", "Ideal scientific outpost for studying deep space.", "Vast underground ocean could exist.", "Could serve as a base for Kuiper Belt missions."], dis: ["Extremely cold temperatures (-230°C).", "No breathable air.", "Subject to immense communication lag (hours).", "Vast distance from Sun makes solar power useless."]
+            },
+
+
+
+            "Voyager 1": {
+                hab: 0.0, points: ["Humanity's Furthest Reach: Voyager 1 is the most distant human-made object, currently over 24 billion kilometers (15 billion miles) from Earth.",
+                    "Interstellar Pioneer: In August 2012, it became the first spacecraft to cross the Heliopause and enter interstellar space.",
+                    "Speed Record: It is traveling at a staggering speed of about 61,200 km/h (38,000 mph) relative to the Sun.",
+                    "The Golden Record: It carries a gold-plated copper phonograph record containing sounds, images, and greetings from Earth in 55 languages.",
+                    "Alien Instructions: The cover of the Golden Record has a symbolic map showing how to play it and Earth's location relative to 14 pulsars.",
+                    "Pale Blue Dot: In 1990, at Carl Sagan's request, Voyager 1 turned its camera around to take a final photo of Earth from 6 billion km away—appearing as a tiny speck.",
+                    "The Family Portrait: Along with the Pale Blue Dot, Voyager 1 captured a 'Family Portrait' of the solar system, showing six planets in one sequence.",
+                    "Grand Tour: It was launched in 1977 to take advantage of a rare alignment of the outer planets that occurs only once every 176 years.",
+                    "Volcano Discovery: It was the first to discover active volcanoes on Jupiter's moon Io, proving that moons could be geologically alive.",
+                    "Titan’s Atmosphere: It discovered that Saturn's moon Titan has a thick, nitrogen-rich atmosphere, making it a primary target for future life-hunting missions.",
+                    "Gravity Slingshot: It used the massive gravity of Jupiter and Saturn to 'slingshot' itself to higher speeds, saving decades of travel time.",
+                    "Jupiter’s Rings: Voyager 1 was the first spacecraft to capture images of Jupiter’s thin, dark ring system, which was invisible from Earth.",
+                    "Complex Saturn Rings: It revealed that Saturn’s rings are not solid sheets but are made of thousands of tiny 'ringlets' and 'spokes'.",
+                    "Magnetic Highway: Before entering interstellar space, it discovered a 'magnetic highway' where the Sun's magnetic field connects to interstellar space.",
+                    "Plasma Waves: It carries a Plasma Wave Instrument that allows scientists to 'hear' the density of space, confirming it had left the Sun's bubble.",
+                    "Computer Power: Its flight data system has only 68 kilobytes of memory—thousands of times less than a modern digital car key.",
+                    "Tape Recorder: It uses an actual digital tape recorder to store data before 'beaming' it back to Earth.",
+                    "Nuclear Power: It is powered by Radioisotope Thermoelectric Generators (RTGs) that convert the heat from decaying Plutonium-238 into electricity.",
+                    "Fading Power: Its power supply drops by about 4 watts every year. NASA has to turn off instruments one by one to keep the mission alive.",
+                    "Communication Delay: Because it is so far away, a signal sent from Earth takes over 23 hours to reach the spacecraft.",
+                    "Deep Space Network: NASA uses giant 70-meter radio antennas across the globe to listen for Voyager’s incredibly faint signal (billionths of a watt).",
+                    "The 2024 Glitch: In early 2024, the spacecraft began sending gibberish code. NASA engineers successfully fixed it by 'patching' the software from 15 billion miles away.",
+                    "Interstellar Wind: It has detected that the space between stars is not empty but filled with a 'plasma' of ionized gas from ancient supernova explosions.",
+                    "Cosmic Rays: Since leaving the Heliosphere, it has seen a 40% increase in high-energy cosmic radiation that the Sun usually blocks.",
+                    "Primary Mission: Its original mission was only supposed to last 5 years, focusing just on Jupiter and Saturn.",
+                    "The Oort Cloud: Despite being in 'interstellar space,' it won't reach the inner edge of the Oort Cloud (the solar system's true boundary) for another 300 years.",
+                    "End of the Oort Cloud: It will take Voyager 1 approximately 30,000 years to fully pass through the Oort Cloud.",
+                    "Star Visit: In about 40,000 years, it will pass within 1.6 light-years of the star Gliese 445 in the constellation Camelopardalis.",
+                    "Eternal Drifter: Voyager 1 is destined to wander the Milky Way galaxy forever, likely outliving the Earth itself.",
+                    "Gold Protection: The Golden Record is encased in an aluminum jacket and plated with gold to protect it from micrometeorites and radiation for 1 billion years.",
+                    "Launch Sequence: Even though it is called 'Voyager 1', its twin, Voyager 2, was actually launched 16 days earlier.",
+                    "Titan Sacrifice: To get a close look at Titan, Voyager 1 had to follow a path that 'bent' its trajectory upward, preventing it from visiting Uranus or Neptune.",
+                    "Weight: At launch, the spacecraft weighed 815 kilograms (about the size of a small car).",
+                    "Three-Axis Stabilization: It uses tiny thrusters to keep its high-gain antenna pointed exactly at Earth with incredible precision.",
+                    "The Brains: It uses three different types of computers (CCS, FDS, and AACS) that 'check' each other's work to prevent errors in deep space.",
+                    "Interstellar Pressure: It discovered that the 'pressure' of interstellar space is much higher than scientists predicted.",
+                    "Tsunami Waves: It has detected 'plasma tsunamis'—shockwaves from solar flares that take a year to reach the spacecraft's distant location.",
+                    "Camera Retirement: NASA turned off Voyager 1's cameras in 1990 to save power and memory, as there are no more planets left for it to see.",
+                    "The 'Blink' Command: To save energy, engineers occasionally 'blink' the heaters on and off to keep the propellant lines from freezing.",
+                    "Backup Thrusters: In 2017, NASA fired up thrusters that hadn't been used in 37 years to help re-orient the spacecraft; they worked perfectly.",
+                    "The 'Hiss' of Space: Voyager 1 recorded a persistent 'hum' of interstellar gas, which scientists described as a 'gentle rain'.",
+                    "Distance Measurement: Astronomers use 'Astronomical Units' (AU) for Voyager; it is currently over 160 AU from the Sun.",
+                    "Slow Data Rate: It sends data back at about 160 bits per second—slower than an old dial-up modem from the 1980s.",
+                    "Solid State?: No. It uses 1970s technology, including wires and hardware that were soldered by hand.",
+                    "Radiation Hardening: Its electronics are encased in lead and tantalum shields to survive the intense radiation belts of Jupiter.",
+                    "The 'Long Goodbye': NASA expects to lose all contact with Voyager 1 by 2030-2035 as its nuclear battery finally dies.",
+                    "Golden Record Content: The record includes 'Johnny B. Goode' by Chuck Berry, the sound of a heartbeat, and a mother’s first words to her newborn.",
+                    "Space Weather Station: It is currently our only 'weather station' capable of measuring the environment outside our Sun's influence.",
+                    "The Great Silence: Once the power dies, Voyager 1 will become a silent 'ghost ship,' carrying the memory of humanity into the deep galaxy.",
+                    "The Final Fact: If an alien ever finds Voyager 1, they will find it in a state of 'perfect' preservation, as space is a vacuum with no oxygen to cause rust or decay."
+                ],
+                adv: ["Most distance human object.", "Provides data on interstellar space.", "Golden Record onboard for aliens."], dis: ["Finite power supply.", "Limited instrument lifespan.", "Vast distance makes real-time control impossible."]
+            },
+
+
+
+
+            "New Horizons": {
+                hab: 0.0, points: ["Fastest Launch Ever: New Horizons left Earth at 58,500 km/h (36,400 mph), the highest launch speed of any human-made object.",
+                    "Moon in 9 Hours: It passed the Moon just 9 hours after launch—a trip that took the Apollo astronauts three days.",
+                    "Jupiter Speed Boost: It used Jupiter’s gravity in 2007 to add 14,000 km/h to its speed, shaving 3 years off its trip to Pluto.",
+                    "Interplanetary Hibernation: To save its systems, the spacecraft spent 1,873 days (about 2/3 of its journey) in 'hibernation' mode.",
+                    "Weekly 'Beep': During hibernation, the craft sent a 'Green' beacon signal once a week to let mission control know it was still healthy.",
+                    "Pluto’s True Size: New Horizons finally settled the debate on Pluto's size, finding it is 2,370 km wide—slightly larger than expected.",
+                    "The Blue Haze: It discovered that Pluto has a blue-tinted atmosphere, similar to Earth’s, caused by layers of organic haze.",
+                    "Floating Mountains: It found water-ice mountains on Pluto that are as tall as the Rockies but likely float on a sea of denser nitrogen ice.",
+                    "The Heart Glacier: Its most famous discovery is 'Sputnik Planitia,' a massive nitrogen-ice glacier the size of Texas that has no craters.",
+                    "Red Mordor: It discovered that Charon (Pluto's largest moon) has a reddish 'cap' at its north pole, likely made of material 'stolen' from Pluto.",
+                    "Charon’s Ocean: It found evidence of massive chasms on Charon, suggesting the moon once had a subsurface ocean that froze and expanded.",
+                    "Rapid Spinners: It discovered Pluto's four small moons (Nix, Hydra, Kerberos, Styx) spin incredibly fast and wobble chaotically.",
+                    "Arrokoth: In 2019, it performed the most distant flyby in history, visiting Arrokoth, a 36-km long object that looks like a red snowman.",
+                    "Contact Binary: Arrokoth was revealed to be two separate objects that merged gently at 'walking speed' billions of years ago.",
+                    "Plutonium Battery: It is powered by a single Radioisotope Thermoelectric Generator (RTG) containing 11 kg of Plutonium-238.",
+                    "Piano-Sized: The spacecraft is roughly the size and shape of a grand piano, weighing 478 kg at launch.",
+                    "Extreme Latency: At Pluto, a radio signal takes 4.5 hours to reach Earth. A two-way 'conversation' takes 9 hours.",
+                    "Dial-Up Speeds: In the deep Kuiper Belt, it sends data at only 1,000 bits per second—thousands of times slower than modern Wi-Fi.",
+                    "15-Month Download: It took 15 months to beam back all the high-resolution data it collected during just a few hours of the Pluto flyby.",
+                    "Clyde Tombaugh’s Ashes: The spacecraft carries a small portion of the ashes of the man who discovered Pluto in 1930.",
+                    "The Maryland Connection: It was designed and is operated by the Johns Hopkins Applied Physics Laboratory in Maryland, not NASA JPL.",
+                    "No Internal Battery: It has no batteries on board; all power comes directly from the RTG, which loses 3.5 Watts of power every year.",
+                    "Hydrogen Wall: In 2018, it confirmed the existence of a 'Hydrogen Wall' at the edge of our solar system where solar wind meets interstellar gas.",
+                    "LORRI: Its main camera, the Long Range Reconnaissance Imager, is a digital telescope that can see a football field from 500 miles away.",
+                    "Seven Instruments: It carries seven scientific instruments (Alice, Ralph, LORRI, SWAP, PEPSSI, SDC, and REX).",
+                    "Dust Counter: The 'Venetia Burney Student Dust Counter' (SDC) was built by students and is the first science instrument on a NASA planetary mission built by students.",
+                    "Memory Limit: It has two solid-state recorders, each holding 8 Gigabytes of data—less than a cheap modern smartphone.",
+                    "Tumbling Moons: It found that the moon Hydra is so reflective it is likely covered in almost pure, clean water ice.",
+                    "The 'Whale': It mapped 'Cthulhu Macula,' a dark, reddish region along Pluto's equator covered in complex organic molecules called tholins.",
+                    "Methane Snowcaps: It discovered that Pluto’s mountains are capped with methane frost, which forms the opposite way Earth's snow does.",
+                    "The 2015 Glitch: Just 10 days before the Pluto flyby, a software timing error caused the craft to lose contact. NASA fixed it in just 3 days.",
+                    "Cryovolcanism: It discovered 'Wright Mons,' a massive mountain that appears to be a volcano that erupts ice 'slush' instead of hot lava.",
+                    "Polygonal Plains: The 'heart' of Pluto is divided into huge polygons that suggest the ice is 'churning' like a slow-motion lava lamp.",
+                    "Sun Distance: It is currently more than 60 times further from the Sun than Earth is (60 AU).",
+                    "Space Weather Station: It is now used as a 'weather station' to measure the solar wind and cosmic rays in the outer solar system.",
+                    "Interstellar Probe?: While it is leaving the solar system, it is traveling slower than Voyager 1 and will never catch up to it.",
+                    "Optical Illusion: Before the flyby, scientists thought Pluto's surface would be ancient and cratered; New Horizons proved it is young and active.",
+                    "X-Ray Mystery: It detected X-rays coming from Pluto, which was unexpected for such a cold, non-magnetic world.",
+                    "Charon-light: Scientists used the faint light reflecting off Charon to take photos of Pluto’s 'dark side' during the flyby.",
+                    "The 2026 Mission: In 2026, New Horizons is expected to observe Uranus and Neptune from its unique vantage point in the outer belt.",
+                    "Low Fuel: It has very little hydrazine fuel left, which it uses only for pointing its antenna and minor course corrections.",
+                    "The Red Snowman: Arrokoth is the 'most primitive' object ever visited, appearing almost exactly as it did 4.5 billion years ago.",
+                    "Atmospheric Escape: It found that Pluto’s atmosphere is slowly 'leaking' into space at a rate of 500 tons per hour.",
+                    "Pressure Change: Data showed that Pluto's atmospheric pressure has actually increased in recent decades as it moves further from the Sun.",
+                    "Naming the Heart: The 'heart' is officially named Tombaugh Regio after Pluto's discoverer.",
+                    "The First New Frontier: It was the first mission in NASA's 'New Frontiers' program (medium-class missions).",
+                    "Beyond the Planets: It is one of only five spacecraft to ever travel far enough to leave our solar system entirely.",
+                    "Golden Record Rival?: While it doesn't have a record like Voyager, it carries a CD with 434,738 names of people who signed up online.",
+                    "Dark Side Photography: Because it was a flyby, it only saw one side of Pluto in high-res; the 'back' was imaged in low-res using 'Charon-light'.",
+                    "The Endless Trek: It will continue to explore the Kuiper Belt until its power source fails, likely in the late 2030s."
+                ],
+                adv: ["Vast data on Kuiper Belt objects.", "Fastest human launch.", "High-resolution images of Pluto/Charon."], dis: ["Long-term mission required for each pass.", "Finite fuel limits maneuverability.", "Lesser scientific payload than Voyager."]
+            }
+        };
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        camera.position.set(0, 300, 700);
+        const texLoader = new THREE.TextureLoader();
+
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x000000, 0);
+
+        function createCloudParticleTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            // UPDATED TO WHITE
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+            gradient.addColorStop(0.4, 'rgba(220, 230, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const cosmicDustGroup = new THREE.Group();
+        const heavyFogGeo = new THREE.BufferGeometry();
+        const heavyFogPos = [];
+        const cloudTex = createCloudParticleTexture();
+        for (let i = 0; i < 8000; i++) {
+            const dist = 500 + Math.random() * 2500;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            heavyFogPos.push(Math.sin(phi) * Math.cos(theta) * dist, Math.sin(phi) * Math.sin(theta) * (dist * 0.35), Math.cos(phi) * dist);
+        }
+        heavyFogGeo.setAttribute('position', new THREE.Float32BufferAttribute(heavyFogPos, 3));
+        const heavyFogMat = new THREE.PointsMaterial({
+            color: 0xffffff, map: cloudTex, size: 250,
+            transparent: true, opacity: 0.0,
+            depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const heavyFog = new THREE.Points(heavyFogGeo, heavyFogMat);
+        cosmicDustGroup.add(heavyFog);
+
+        const fineDustGeo = new THREE.BufferGeometry();
+        const fineDustPos = [];
+        for (let i = 0; i < 35000; i++) {
+            const dist = 300 + Math.random() * 3500;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            fineDustPos.push(Math.sin(phi) * Math.cos(theta) * dist, Math.sin(phi) * Math.sin(theta) * (dist * 0.4), Math.cos(phi) * dist);
+        }
+        fineDustGeo.setAttribute('position', new THREE.Float32BufferAttribute(fineDustPos, 3));
+        const fineDustMat = new THREE.PointsMaterial({
+            color: 0xffffff, size: 2.5, // UPDATED TO WHITE
+            transparent: true, opacity: 0.0,
+            depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const fineDust = new THREE.Points(fineDustGeo, fineDustMat);
+        cosmicDustGroup.add(fineDust);
+        scene.add(cosmicDustGroup);
+
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for (let i = 0; i < 8000; i++) starPos.push((Math.random() - 0.5) * 8000, (Math.random() - 0.5) * 8000, (Math.random() - 0.5) * 8000);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 })));
+        scene.add(new THREE.PointLight(0xffffff, 4, 3000));
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.15); scene.add(ambLight);
+
+        const sunUniforms = { time: { value: 0.0 } };
+        const sunMaterial = new THREE.ShaderMaterial({
+            uniforms: sunUniforms,
+            vertexShader: `varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+            fragmentShader: `uniform float time; varying vec3 vPosition; void main() { float n1 = sin(vPosition.x*0.1+time)*sin(vPosition.y*0.1+time); float n2 = sin(vPosition.y*0.15-time*1.2)*sin(vPosition.z*0.15-time); vec3 c1=vec3(0.9,0.3,0.0); vec3 c2=vec3(1.0,0.9,0.1); gl_FragColor=vec4(mix(c1,c2,(n1+n2+2.0)*0.25),1.0); }`
+        });
+        const sun = new THREE.Mesh(new THREE.SphereGeometry(40, 64, 64), sunMaterial); scene.add(sun);
+        const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(44, 64, 64), new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.25, side: THREE.BackSide })); scene.add(sunGlow);
+
+        function generatePlanetTexture(baseColorHex, type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256; const ctx = canvas.getContext('2d');
+            ctx.fillStyle = baseColorHex; ctx.fillRect(0, 0, 512, 256);
+            if (type === 'gas') {
+                for (let i = 0; i < 30; i++) {
+                    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.15})`;
+                    ctx.fillRect(0, Math.random() * 256, 512, Math.random() * 20 + 5);
+                    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.15})`;
+                    ctx.fillRect(0, Math.random() * 256, 512, Math.random() * 15 + 2);
+                }
+            } else if (type === 'rocky') {
+                for (let i = 0; i < 2000; i++) {
+                    ctx.beginPath();
+                    ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 2 + 0.5, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.1})`;
+                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 1.5 + 0.5, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.15})`; ctx.fill();
+                }
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const pData = {
+            "Mercury": { size: 4, dist: 90, speed: 0.015, color: '#888888', type: 'rocky' },
+            "Venus": { size: 8, dist: 140, speed: 0.01, color: '#e3bb76', type: 'rocky' },
+            "Earth": { size: 9, dist: 200, speed: 0.008, color: '#2244bb', type: 'real' },
+            "Mars": { size: 6, dist: 260, speed: 0.006, color: '#d14009', type: 'rocky' },
+            "Jupiter": { size: 22, dist: 360, speed: 0.003, color: '#c88b3a', type: 'gas' },
+            "Saturn": { size: 18, dist: 460, speed: 0.002, color: '#e6dbb8', type: 'gas', hasRing: true },
+            "Uranus": { size: 12, dist: 550, speed: 0.0015, color: '#82f1f1', type: 'gas' },
+            "Neptune": { size: 12, dist: 630, speed: 0.001, color: '#3344ff', type: 'gas' },
+            "Pluto": { size: 3, dist: 720, speed: 0.0005, color: '#6a493a', type: 'rocky' },
+        };
+        const planets = {};
+        const planetMeshes = [];
+
+        Object.keys(pData).forEach(name => {
+            const d = pData[name];
+            let matConfig = { emissive: new THREE.Color(d.color), emissiveIntensity: 0.05, roughness: 0.8 };
+            if (d.type === 'real') matConfig.map = texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
+            else { matConfig.map = generatePlanetTexture(d.color, d.type); if (d.type === 'gas') matConfig.roughness = 0.3; }
+
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(d.size, 64, 64), new THREE.MeshStandardMaterial(matConfig));
+            mesh.userData = { planetName: name }; planetMeshes.push(mesh);
+            const group = new THREE.Group(); group.add(mesh); mesh.position.x = d.dist; scene.add(group);
+            const orbitRing = new THREE.Mesh(new THREE.RingGeometry(d.dist - 0.4, d.dist + 0.4, 128), new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.1, transparent: true, side: THREE.DoubleSide }));
+            orbitRing.rotation.x = Math.PI / 2; scene.add(orbitRing);
+            if (d.hasRing) {
+                const saturnRingGeo = new THREE.RingGeometry(d.size * 1.3, d.size * 2.2, 64);
+                const rCanvas = document.createElement('canvas'); rCanvas.width = 512; rCanvas.height = 10; const rctx = rCanvas.getContext('2d');
+                rctx.fillStyle = 'rgba(230,219,184,0.5)';
+                rctx.fillRect(0, 0, 512, 10); rctx.fillStyle = 'rgba(0,0,0,0.8)'; rctx.fillRect(100, 0, 20, 10); rctx.fillRect(300, 0, 50, 10);
+                const saturnRing = new THREE.Mesh(saturnRingGeo, new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(rCanvas), side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+                saturnRing.rotation.x = Math.PI / 2; mesh.add(saturnRing);
+            }
+            planets[name] = { mesh, group, speed: d.speed, size: d.size, name: name };
+        });
+
+        const probesData = {
+            "Voyager 1": { dist: 950, size: 2, color: '#fcc731', facts: ["Voyager 1"] },
+            "New Horizons": { dist: 780, size: 1.5, color: '#fcc731', facts: ["New Horizons"] }
+        };
+        const objects = {};
+        Object.keys(planets).forEach(k => objects[k] = planets[k]);
+        Object.keys(probesData).forEach(name => {
+            const spec = probesData[name];
+            const body = new THREE.Mesh(new THREE.BoxGeometry(spec.size, spec.size, spec.size), new THREE.MeshStandardMaterial({ color: spec.color }));
+            const dish = new THREE.Mesh(new THREE.CircleGeometry(spec.size * 1.5, 32), new THREE.MeshStandardMaterial({ color: '#bbb', emissive: spec.color, emissiveIntensity: 0.1 }));
+            dish.position.z = spec.size * 0.7; body.add(dish);
+            const group = new THREE.Group(); group.add(body); scene.add(group);
+            body.position.x = spec.dist;
+            body.userData = { planetName: name }; planetMeshes.push(body);
+            objects[name] = { mesh: body, group, speed: 0, size: spec.size, name: name };
+        });
+        const billionScaleRingGeo = new THREE.RingGeometry(1000, 1000.5, 128);
+        const billionScaleRing = new THREE.Mesh(billionScaleRingGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.15 }));
+        billionScaleRing.rotation.x = Math.PI / 2; scene.add(billionScaleRing);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(); let hoveredPlanet = null;
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1; mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera); document.body.style.cursor = 'default';
+            if (hoveredPlanet) hoveredPlanet.mesh.material.emissiveIntensity = 0.05; hoveredPlanet = null;
+            const intersects = raycaster.intersectObjects(planetMeshes);
+            if (intersects.length > 0) {
+                const p = intersects[0].object;
+                if (p.userData.planetName) {
+                    hoveredPlanet = objects[p.userData.planetName]; hoveredPlanet.mesh.material.emissiveIntensity = 0.6; document.body.style.cursor = 'pointer';
+                }
+            }
+        });
+        window.addEventListener('click', () => { if (hoveredPlanet && document.getElementById('learnModal').style.display !== 'block') { selectPlanet(hoveredPlanet.name); openLearn(); } });
+
+        let target = null;
+        let selectedName = "";
+
+        function selectPlanet(name) {
+            if (!name) { resetView(); return; }
+            selectedName = name; target = objects[name];
+            document.getElementById('planetMenu').value = name;
+            document.getElementById('btnBack').style.display = 'block'; document.getElementById('learnBtn').style.display = 'block';
+        }
+
+        function resetView() {
+            target = null;
+            document.getElementById('btnBack').style.display = 'none'; document.getElementById('learnBtn').style.display = 'none';
+            document.getElementById('planetMenu').value = ""; controls.target.set(0, 0, 0);
+        }
+
+        function openLearn() {
+            if (!selectedName) return;
+            const data = db[selectedName];
+            document.getElementById('mTitle').innerText = `${selectedName}: MISSION DATA`;
+            document.getElementById('mDiagram').innerText = ``;
+            const bar = document.getElementById('mHabBar');
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = `${data.hab}%`; bar.innerText = `${data.hab}%`;
+                if (data.hab < 5) bar.style.background = '#d9534f'; else if (data.hab < 50) bar.style.background = '#f0ad4e'; else bar.style.background = '#2fa04a';
+            }, 300);
+            const ptsDiv = document.getElementById('mPoints'); ptsDiv.innerHTML = "";
+            const pointsToShow = (data.points && Array.isArray(data.points[2])) ? data.points[2] : data.points || [];
+            pointsToShow.forEach(p => { const d = document.createElement('div'); d.className = 'point-item'; d.innerText = p; ptsDiv.appendChild(d); });
+            const advUl = document.getElementById('mAdv');
+            advUl.innerHTML = "";
+            (data.adv || []).forEach(a => { const li = document.createElement('li'); li.innerText = a; advUl.appendChild(li); });
+            const disUl = document.getElementById('mDis');
+            disUl.innerHTML = ""; (data.dis || []).forEach(d => { const li = document.createElement('li'); li.innerText = d; disUl.appendChild(li); });
+            document.getElementById('learnModal').style.display = 'block';
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function zoom(isIn) { camera.position.z += isIn ? -50 : 50; }
+        function toggleLight() { ambLight.intensity = ambLight.intensity > 0.5 ? 0.15 : 1.5; }
+        function updateFilters() {
+            const b = document.getElementById('brightSlider').value;
+            const c = document.getElementById('contrastSlider').value;
+            document.querySelector('canvas').style.filter = `brightness(${b}) contrast(${c})`;
+        }
+        function saveSettings() { closeModal('settingsModal'); }
+
+        // --- ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            sunUniforms.time.value += 0.03; sun.rotation.y += 0.001;
+            sunGlow.scale.set(1 + Math.sin(Date.now() * 0.002) * 0.02, 1 + Math.sin(Date.now() * 0.002) * 0.02, 1);
+            cosmicDustGroup.rotation.y += 0.0005;
+
+            Object.keys(objects).forEach(n => {
+                const o = objects[n];
+                if (o.group && o.speed > 0) o.group.rotation.y += o.speed;
+                if (o.mesh) o.mesh.rotation.y += 0.01;
+            });
+            if (target) {
+                const worldPos = target.mesh.getWorldPosition(new THREE.Vector3());
+                controls.target.lerp(worldPos, 0.1);
+                camera.position.lerp(new THREE.Vector3(worldPos.x, worldPos.y + target.size, worldPos.z + target.size * 5), 0.05);
+            }
+
+            const currentDistanceInMillionKM = camera.position.length() * 1.5;
+
+            if (currentDistanceInMillionKM >= DUST_START_THRESHOLD) {
+                let intensity = (currentDistanceInMillionKM - DUST_START_THRESHOLD) / (DUST_MAX_THRESHOLD - DUST_START_THRESHOLD);
+                intensity = Math.max(0, Math.min(1, intensity));
+
+                let blackColor = new THREE.Color(0x000000);
+                // UPDATED BACKGROUND FADE TO WHITE/GREY
+                let dustColor = new THREE.Color(0xffffff);
+
+                scene.background = blackColor.clone().lerp(dustColor, intensity * 0.08); // Subtle white haze
+
+                if (scene.fog) {
+                    scene.fog.color = dustColor;
+                    scene.fog.density = 0.0008 * intensity;
+                }
+
+                heavyFogMat.opacity = 0.12 * intensity;
+                fineDustMat.opacity = 0.7 * intensity;
+
+            } else {
+                scene.background.setHex(0x000000);
+                if (scene.fog) scene.fog.density = 0;
+                heavyFogMat.opacity = 0;
+                fineDustMat.opacity = 0;
+            }
+
+            let distanceText = `Distance to Sun: ${currentDistanceInMillionKM.toFixed(0)} Million KM`;
+            if (currentDistanceInMillionKM >= DUST_START_THRESHOLD) {
+                let lightYears = currentDistanceInMillionKM / KM_TO_LY_DIVISOR;
+                distanceText += ` | ${lightYears.toFixed(5)} LY`;
+            }
+
+            document.getElementById('dynamic_dist').innerText = distanceText;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        animate();
+    </script>
+</body>
+</html>
